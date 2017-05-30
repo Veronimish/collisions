@@ -1,6 +1,6 @@
 	
 
-	Space Shooter Extension
+	Tappy Plane Extension
 
 	by  Kenney Vleugels (Kenney.nl)
 
