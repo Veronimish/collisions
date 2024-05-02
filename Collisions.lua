@@ -24,30 +24,20 @@
 ]]--
 
 -- Liste d'angles précalculés pour éviter de faire appel trop souvent à math.rad()
-Angle1 = 0.017      -- 360 côtés
-Angle2 = 0.035      -- 180
-Angle3 = 0.052      -- 120
-Angle4 = 0.070      -- 90
 Angle5 = 0.087      -- 72
-Angle6 = 0.105      -- 60
-Angle8 = 0.140      -- 45
 Angle10 = 0.174     -- 36
-Angle12 = 0.210     -- 30
 Angle15 = 0.261     -- 24
-Angle24 = 0.420     -- 15
 Angle30 = 0.523     -- 12
 Angle36 = 0.628     -- 10
 Angle45 = 0.785     --  8
-Angle60 = 1.047     --  6
-Angle72 = 1.257     --  5
-Angle90 = 1.570     --  4   1 carré.
-Angle120 = 2.094    --  3   1 triangle.
-Angle180 = 3.141    --  2   1 ligne.
-Angle360 = 6.283    --  1   1 point.
+Angle90 = 1.570     --  4
+Angle120 = 2.094    --  3
+Angle180 = 3.141    --  2 
+Angle360 = 6.283    --  1
 
 -- Cette fonction renvoi la distance entre deux points.
 function Distance(pt1, pt2)
-  return math.sqrt((pt1[1] - pt2[1])^2 + (pt1[2] - pt2[2])^2)
+  return ((pt1[1] - pt2[1])^2 + (pt1[2] - pt2[2])^2)^0.5
 end
 
 -- Cette fonction renvoi l'angle de pt2 par rapport à pt1.
@@ -57,25 +47,17 @@ end
 
 -- Cette fonction renvoi la surface d'un triangle dont les sommets sont pt1, pt2 et pt3.
 function Aire(pt1, pt2, pt3)
-  local AB = math.sqrt((pt1[1] - pt2[1])^2 + (pt1[2] - pt2[2])^2)
-  local BC = math.sqrt((pt2[1] - pt3[1])^2 + (pt2[2] - pt3[2])^2)
-  local CA = math.sqrt((pt3[1] - pt1[1])^2 + (pt3[2] - pt1[2])^2)
+  local AB = ((pt1[1] - pt2[1])^2 + (pt1[2] - pt2[2])^2)^0.5
+  local BC = ((pt2[1] - pt3[1])^2 + (pt2[2] - pt3[2])^2)^0.5
+  local CA = ((pt3[1] - pt1[1])^2 + (pt3[2] - pt1[2])^2)^0.5
   local P = (AB + BC + CA) / 2
-  return math.sqrt(P*(P-AB)*(P-BC)*(P-CA))
+  return (P*(P-AB)*(P-BC)*(P-CA))^0.5
 end
 
 -- Fonction d'arrondi utilisee par les calculs de collisions.
 function Round(valeur, decimales)
-  if decimales < 1 then
-    decimales = 1 
-    print("Attention : Nombre minimum de décimales = 1")
-  end
-  if decimales > 5 then
-    decimales = 5 
-    print("Attention : Nombre maximum de décimales = 5")
-  end
-  valeur = valeur + (0.5/ (10^decimales))
-  return math.floor(valeur * (10^decimales)) / (10^decimales)
+	local decalage = 10 ^decimales
+	return math.floor( valeur * decalage + 0.5) / decalage
 end
 
 -- Fonction qui renvoi un point au format {valeur, valeur}.
@@ -95,17 +77,17 @@ function Triangle(PtA, PtB, PtC)
 end
 
 function Rectangle(x, y, width, height)
-  return {x, y}
+  return {x, y, width, height}
 end
 
 -- Fonction qui renvoi true si les cercles c1 et c2 sont en contact.
 function CollisionCC(c1, c2)
-  return math.sqrt((c1[1] - c2[1])^2 + (c1[2] - c2[2])^2) < (c1[3] + c2[3])
+  return ((c1[1] - c2[1])^2 + (c1[2] - c2[2])^2)^0.5 < (c1[3] + c2[3])
 end
 
 -- Fonction qui renvoi true si le point pt est en contact ou dans le cercle c.
 function CollisionPtC(pt, c)
-  local distance = math.sqrt((p[1] - c[1])^2 + (p[2] - c[2])^2)
+  local distance = ((p[1] - c[1])^2 + (p[2] - c[2])^2)^0.5
   return (distance < c[3])
 end
 
@@ -127,18 +109,32 @@ function CollisionPtR(pt, r)
     )
 end
 
--- Fonction qui renvoi true si le point pt est en contact ou dans le triangle t.
 function CollidePtT(pt, t)
-  local P = {pt[1], pt[2]}
-  local A = {t[1], t[2]}
-  local B = {t[3], t[4]}
-  local C = {t[5], t[6]}
-  local ABC = Aire(A, B, C)
-  local alpha = Aire(P, B, C) / ABC
-  local beta  = Aire(A, P, C) / ABC
-  local gamma = Aire(A, B, P) / ABC
-  return Round(alpha + beta + gamma, 2) == 1
+  local D = {x=pt[1], y=pt[2]}
+  local A = {x=t[1], y=t[2]}
+  local B = {x=t[3], y=t[4]}
+  local C = {x=t[5], y=t[6]}
+  -- Fonction pour calculer les coordonnées barycentriques du point D par rapport au triangle ABC
+  local function coordonnees_barycentriques(A, B, C, D)
+    local denominateur = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y)
+    local alpha = ((B.y - C.y) * (D.x - C.x) + (C.x - B.x) * (D.y - C.y)) / denominateur
+    local beta = ((C.y - A.y) * (D.x - C.x) + (A.x - C.x) * (D.y - C.y)) / denominateur
+    local gamma = 1 - alpha - beta
+    return alpha, beta, gamma
+  end
+
+  -- Calculer les coordonnées barycentriques de D par rapport à ABC
+  local alpha, beta, gamma = coordonnees_barycentriques(A, B, C, D)
+
+  -- Vérifier si les coordonnées barycentriques sont comprises entre 0 et 1
+  if 0 <= alpha and alpha <= 1 and 0 <= beta and beta <= 1 and 0 <= gamma and gamma <= 1 then
+    return true
+  else
+    return false
+  end
 end
+
+
 
 -- Fonction qui renvoi true si le triangle t1 et le triangle t2 sont en contact.
 function CollideTT(t1, t2)
